@@ -22,7 +22,7 @@ class CallClient(
     fun POST(url: String, header: Map<String, String> = emptyMap(), body: RequestBody): String {
         val requestBuilder = Request.Builder().url(url)
         header.forEach { (key, value) -> requestBuilder.addHeader(key, value) }
-        val request = requestBuilder.build()
+        val request = requestBuilder.post(body).build()
         return resultHandler(httpClient.newCall(request).execute())
     }
 

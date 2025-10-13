@@ -69,7 +69,7 @@ data class GoogleUserResponseTemp(
     val repos_url: String,
     val name: String
 ) {
-    fun toOAuth2UserResponse() = GithubUserResponse(
+    fun toOAuth2UserResponse() = GoogleUserResponse(
         id = id.toString(),
         email = repos_url,
         name = name
