@@ -46,6 +46,9 @@ dependencies {
 
     // okhttp
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // ulid
+    implementation("com.github.f4b6a3:ulid-creator:5.2.3")
 }
 
 kotlin {
