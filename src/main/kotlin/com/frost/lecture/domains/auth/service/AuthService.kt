@@ -5,7 +5,7 @@ import com.frost.lecture.common.exception.ErrorCode
 import com.frost.lecture.common.jwt.JwtProvider
 import com.frost.lecture.common.logging.Logging
 import com.frost.lecture.common.transaction.Transactional
-import com.frost.lecture.domain.auth.repository.AuthUserRepository
+import com.frost.lecture.domains.auth.repository.AuthUserRepository
 import com.frost.lecture.interfaces.OAuthServiceInterface
 import com.frost.lecture.types.entity.User
 import com.github.f4b6a3.ulid.UlidCreator
@@ -45,5 +45,9 @@ class AuthService(
         }
 
         return@logFor token
+    }
+
+    fun verifyToken(authHeader: String) {
+        jwtProvider.verifyToken(authHeader.removePrefix("Bearer ").trim())
     }
 }

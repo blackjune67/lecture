@@ -1,4 +1,4 @@
-package com.frost.lecture.domain.auth.repository
+package com.frost.lecture.domains.auth.repository
 
 import com.frost.lecture.types.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
