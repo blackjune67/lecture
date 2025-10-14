@@ -32,7 +32,7 @@ class AuthService(
         log["username"] = username
 
         transactional.run {
-            val exist = authUserRepository.existsByUsernameAndPlatform(username)
+            val exist = authUserRepository.existsByUsername(username)
             if (exist) {
                 // access Token만 update
                 authUserRepository.updateTokenByUsername(username, token)
