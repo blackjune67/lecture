@@ -28,7 +28,7 @@ class CallClient(
 
     private fun resultHandler(response: Response): String {
         response.use {
-            if (it.isSuccessful) {
+            if (!it.isSuccessful) {
                 val msg = "Http ${it.code}: ${it.body?.string() ?: "unknown error"}"
                 throw CustomException(ErrorCode.FAILED_TO_CALL_CLIENT, msg)
             }
