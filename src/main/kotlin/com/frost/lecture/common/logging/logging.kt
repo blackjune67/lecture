@@ -5,7 +5,7 @@ import com.frost.lecture.common.exception.ErrorCode
 import org.slf4j.*
 
 object Logging {
-    fun <T, Any> getLogger(clazz: Class<T>): Logger = LoggerFactory.getLogger(clazz)
+    fun <T: Any> getLogger(clazz: Class<T>): Logger = LoggerFactory.getLogger(clazz)
 
     fun <T> logFor(log: Logger, function: (MutableMap<String, Any>) -> T): T {
         val logInfo = mutableMapOf<String, Any>()
