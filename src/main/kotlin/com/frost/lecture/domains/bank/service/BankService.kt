@@ -2,9 +2,8 @@ package com.frost.lecture.domains.bank.service
 
 import com.frost.lecture.common.logging.Logging
 import com.frost.lecture.common.transaction.Transactional
+import org.slf4j.Logger
 import org.springframework.stereotype.Service
-import org.slf4j.*
-import kotlin.math.log
 
 @Service
 class BankService(
