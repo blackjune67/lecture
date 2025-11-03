@@ -37,4 +37,7 @@ data class Account(
 
     @Column(name = "update_at", nullable = false)
     val updateAt: LocalDateTime = LocalDateTime.now(),
+
+    @Column(name = "deleted_at")
+    val deletedAt: LocalDateTime? = null,
 )

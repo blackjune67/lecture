@@ -14,6 +14,7 @@ import org.slf4j.Logger
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.lang.Math.random
+import java.time.LocalDateTime
 
 @Service
 class BankService(
@@ -35,6 +36,7 @@ class BankService(
                 user = user,
                 accountNumber = accountNumber,
             )
+
             try {
                 bankAccountRepository.save(account)
             } catch (e: Exception) {
@@ -49,14 +51,38 @@ class BankService(
         log ->
         log["userUlid"] = userUlid
         log["accountUlid"] = accountUlid
-        transactional.run {  }
+
+        // 더티 리드?
+        // 동시성 문제? -> 동시성 처리 고려
+
+        return@logFor transactional.run {
+            val account = bankAccountRepository.findByUlId(accountUlid) ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT, accountUlid)
+            if(account.user.ulId != userUlid) throw CustomException(ErrorCode.MISS_MATCH_ACCOUNT_ULID_AND_USER_ULID)
+            ResponseProvider.success(account.balance)
+        }
     }
 
     fun removeAccount(userUlid: String, accountUlid: String): Response<String> = Logging.logFor(logger) {
         log ->
         log["userUlid"] = userUlid
         log["accountUlid"] = accountUlid
-        transactional.run {  }
+
+        return@logFor transactional.run {
+            //val user = bankUserRepository.findByUlId(userUlid)
+            val account = bankAccountRepository.findByUlId(accountUlid) ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT, accountUlid)
+
+            if (account.user.ulId != userUlid) throw CustomException(ErrorCode.MISS_MATCH_ACCOUNT_ULID_AND_USER_ULID)
+            if (account.balance.compareTo(BigDecimal.ZERO) != 0 ) throw CustomException(ErrorCode.ACCOUNT_BALANCE_IS_NOT_ZERO)
+
+            val updateAccount = account.copy(
+                isDeleted = true,
+                deletedAt = LocalDateTime.now(),
+                updateAt = LocalDateTime.now()
+            )
+
+            bankAccountRepository.save(updateAccount)
+            ResponseProvider.success("SUCCESS")
+        }
 
         return@logFor ResponseProvider.success("SUCCESS")
     }
