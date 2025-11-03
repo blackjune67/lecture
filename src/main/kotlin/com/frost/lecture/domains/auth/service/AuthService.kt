@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service
 class AuthService(
     private val oAuth2Service: Map<String, OAuthServiceInterface>,
     private val jwtProvider: JwtProvider,
-    private val logger: Logger = Logging.getLogger<AuthService, String>(AuthService::class.java),
+    private val logger: Logger = Logging.getLogger<AuthService>(AuthService::class.java),
     private val transactional: Transactional,
     private val authUserRepository: AuthUserRepository,
 ) {
