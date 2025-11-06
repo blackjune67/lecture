@@ -18,7 +18,7 @@ class BankController(
         return bankService.createAccount(userUlid)
     }
 
-    @GetMapping("/balance/{userid}/{accountUlid}")
+    @GetMapping("/balance/{userUlid}/{accountUlid}")
     fun balance(
         @PathVariable("userUlid", required = true) userUlid: String,
         @PathVariable("accountUlid", required = true) accountUlid: String,
@@ -27,7 +27,7 @@ class BankController(
     }
 
 
-    @PostMapping("/balance/{userid}/{accountUlid}")
+    @PostMapping("/balance/{userUlid}/{accountUlid}")
     fun removeAccount(
         @PathVariable("userUlid", required = true) userUlid: String,
         @PathVariable("accountUlid", required = true) accountUlid: String,

@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 data class Account(
 
     @Id
-    @Column(name = "ulid", length = 12, nullable = false)
+    @Column(name = "ulid", length = 26, nullable = false)
     val ulId: String,
 
     @ManyToOne(fetch = FetchType.LAZY)
