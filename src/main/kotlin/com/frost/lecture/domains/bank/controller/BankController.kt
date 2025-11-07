@@ -26,8 +26,7 @@ class BankController(
         return bankService.balance(userUlid, accountUlid)
     }
 
-
-    @PostMapping("/balance/{userUlid}/{accountUlid}")
+    @PostMapping("/remove/{userUlid}/{accountUlid}")
     fun removeAccount(
         @PathVariable("userUlid", required = true) userUlid: String,
         @PathVariable("accountUlid", required = true) accountUlid: String,
