@@ -7,6 +7,7 @@ import com.frost.lecture.common.exception.ErrorCode
 import com.frost.lecture.common.logging.Logging
 import com.frost.lecture.common.transaction.Transactional
 import com.frost.lecture.domains.model.DepositResponse
+import com.frost.lecture.domains.model.TransferResponse
 import com.frost.lecture.domains.transaction.repository.TransactionsAccount
 import com.frost.lecture.domains.transaction.repository.TransactionsUser
 import com.frost.lecture.types.dto.Response
@@ -24,26 +25,63 @@ class TransactionService(
     private val transactional: Transactional,
     private val logger: Logger = Logging.getLogger(TransactionService::class.java)
 ) {
-    fun deposit(userUlid: String, accountId: String, value: BigDecimal): Response<DepositResponse> = Logging.logFor(logger) {
-        it
-        it["userUlid"] = userUlid
-        it["accountId"] = accountId
-        it["value"] = value
+    fun deposit(userUlid: String, accountId: String, value: BigDecimal): Response<DepositResponse> =
+        Logging.logFor(logger) {
+            it
+            it["userUlid"] = userUlid
+            it["accountId"] = accountId
+            it["value"] = value
 
-        val key = RedisKeyProvider.bankMutexKey(userUlid, accountId)
+            val key = RedisKeyProvider.bankMutexKey(userUlid, accountId)
 
-        return@logFor redisClient.invokeWithMutex(key) {
-            return@invokeWithMutex transactional.run {
-                val user = transactionsUser.findByUlId(userUlid)
-                val account = transactionsAccount.findByUlidAndUser(accountId, user)
-                    ?:throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
-                account.balance = account.balance.add(value)
-                account.updateAt = LocalDateTime.now()
-                transactionsAccount.save(account)
+            return@logFor redisClient.invokeWithMutex(key) {
+                return@invokeWithMutex transactional.run {
+                    val user = transactionsUser.findByUlId(userUlid)
+                    val account = transactionsAccount.findByUlidAndUser(accountId, user)
+                        ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
+                    account.balance = account.balance.add(value)
+                    account.updateAt = LocalDateTime.now()
+                    transactionsAccount.save(account)
 
-                ResponseProvider.success(DepositResponse(afterBalance = account.balance))
+                    ResponseProvider.success(DepositResponse(afterBalance = account.balance))
+                }
             }
         }
 
-    }
+    fun transfer(fromUlid: String, fromAccountId: String, toAccountId: String, value: BigDecimal): Response<TransferResponse> =
+        Logging.logFor(logger) {
+            it
+            it["fromUlid"] = fromUlid
+            it["fromAccountId"] = fromAccountId
+            it["toAccountId"] = toAccountId
+            it["value"] = value
+
+            val key = RedisKeyProvider.bankMutexKey(fromUlid, fromAccountId)
+            redisClient.invokeWithMutex(key) {
+                return@invokeWithMutex transactional.run {
+                    val fromAccount = transactionsAccount.findByUlId(toAccountId)
+                        ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
+
+                    if (fromAccount.ulId != fromUlid) {
+
+                    } else if (fromAccount.balance < value) {
+
+                    } else if (value <= BigDecimal.ZERO) {
+
+                    }
+
+                    val toAccount = transactionsAccount.findByUlId(fromAccountId)
+                        ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
+
+                    fromAccount.balance = fromAccount.balance.subtract(value)
+                    toAccount.balance = toAccount.balance.add(value)
+
+                    transactionsAccount.save(toAccount)
+                    transactionsAccount.save(fromAccount)
+
+                    ResponseProvider.success(TransferResponse(afterFromBalance = fromAccount.balance
+                    , afterToBalance = toAccount.balance))
+                }
+            }
+        }
 }
