@@ -59,18 +59,18 @@ class TransactionService(
             val key = RedisKeyProvider.bankMutexKey(fromUlid, fromAccountId)
             redisClient.invokeWithMutex(key) {
                 return@invokeWithMutex transactional.run {
-                    val fromAccount = transactionsAccount.findByUlId(toAccountId)
+                    val fromAccount = transactionsAccount.findByUlId(fromAccountId)
                         ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
 
                     if (fromAccount.ulId != fromUlid) {
-
+                        throw CustomException(ErrorCode.MISS_MATCH_ACCOUNT_ULID_AND_USER_ULID)
                     } else if (fromAccount.balance < value) {
-
+                        throw CustomException(ErrorCode.ENOUGH_VALUE)
                     } else if (value <= BigDecimal.ZERO) {
-
+                        throw CustomException(ErrorCode.VALUE_MUST_NOT_BE_UNDER_ZERO)
                     }
 
-                    val toAccount = transactionsAccount.findByUlId(fromAccountId)
+                    val toAccount = transactionsAccount.findByUlId(toAccountId)
                         ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
 
                     fromAccount.balance = fromAccount.balance.subtract(value)
@@ -79,8 +79,10 @@ class TransactionService(
                     transactionsAccount.save(toAccount)
                     transactionsAccount.save(fromAccount)
 
-                    ResponseProvider.success(TransferResponse(afterFromBalance = fromAccount.balance
-                    , afterToBalance = toAccount.balance))
+                    ResponseProvider.success(TransferResponse(
+                        afterFromBalance = fromAccount.balance,
+                        afterToBalance = toAccount.balance
+                    ))
                 }
             }
         }
