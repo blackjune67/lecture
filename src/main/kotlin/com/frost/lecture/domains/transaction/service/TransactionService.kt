@@ -37,7 +37,7 @@ class TransactionService(
             return@logFor redisClient.invokeWithMutex(key) {
                 return@invokeWithMutex transactional.run {
                     val user = transactionsUser.findByUlId(userUlid)
-                    val account = transactionsAccount.findByUlidAndUser(accountId, user)
+                    val account = transactionsAccount.findByUlIdAndUser(accountId, user)
                         ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
                     account.balance = account.balance.add(value)
                     account.updateAt = LocalDateTime.now()
