@@ -5,6 +5,7 @@ import com.frost.lecture.common.cache.RedisKeyProvider
 import com.frost.lecture.common.exception.CustomException
 import com.frost.lecture.common.exception.ErrorCode
 import com.frost.lecture.common.logging.Logging
+import com.frost.lecture.common.message.KafkaProducer
 import com.frost.lecture.common.transaction.Transactional
 import com.frost.lecture.domains.model.DepositResponse
 import com.frost.lecture.domains.model.TransferResponse
@@ -12,6 +13,8 @@ import com.frost.lecture.domains.transaction.repository.TransactionsAccount
 import com.frost.lecture.domains.transaction.repository.TransactionsUser
 import com.frost.lecture.types.dto.Response
 import com.frost.lecture.types.dto.ResponseProvider
+import com.frost.lecture.types.entity.Account
+import com.frost.lecture.types.entity.User
 import org.slf4j.Logger
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -21,6 +24,7 @@ import java.time.LocalDateTime
 class TransactionService(
     private val transactionsUser: TransactionsUser,
     private val transactionsAccount: TransactionsAccount,
+    private val kafkaProducer: KafkaProducer,
     private val redisClient: RedisClient,
     private val transactional: Transactional,
     private val logger: Logger = Logging.getLogger(TransactionService::class.java)
@@ -33,6 +37,8 @@ class TransactionService(
             it["value"] = value
 
             val key = RedisKeyProvider.bankMutexKey(userUlid, accountId)
+//            var account: Account? = null
+//            var user: User
 
             return@logFor redisClient.invokeWithMutex(key) {
                 return@invokeWithMutex transactional.run {
@@ -43,6 +49,7 @@ class TransactionService(
                     account.updateAt = LocalDateTime.now()
                     transactionsAccount.save(account)
 
+                    kafkaProducer.sendMessage()
                     ResponseProvider.success(DepositResponse(afterBalance = account.balance))
                 }
             }

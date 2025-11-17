@@ -1,5 +1,7 @@
 package com.frost.lecture.common.message
 
+import com.frost.lecture.common.exception.CustomException
+import com.frost.lecture.common.exception.ErrorCode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
@@ -20,6 +22,7 @@ class KafkaProducer(
                 log.info("메시지 발행 성공 - topic: $topic - time: ${LocalDateTime.now()}")
             } else {
                 log.error("메시지 전송 실패 - ${ex.message}")
+                throw CustomException(ErrorCode.FAILED_TO_SEND_MESSAGE, topic)
             }
         }
     }
