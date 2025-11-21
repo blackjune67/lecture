@@ -4,6 +4,7 @@ import com.frost.lecture.common.cache.RedisClient
 import com.frost.lecture.common.cache.RedisKeyProvider
 import com.frost.lecture.common.exception.CustomException
 import com.frost.lecture.common.exception.ErrorCode
+import com.frost.lecture.common.json.JsonUtil
 import com.frost.lecture.common.logging.Logging
 import com.frost.lecture.common.message.KafkaProducer
 import com.frost.lecture.common.transaction.Transactional
@@ -15,6 +16,7 @@ import com.frost.lecture.types.dto.Response
 import com.frost.lecture.types.dto.ResponseProvider
 import com.frost.lecture.types.entity.Account
 import com.frost.lecture.types.entity.User
+import com.frost.lecture.types.message.TransactionMessage
 import org.slf4j.Logger
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -49,13 +51,30 @@ class TransactionService(
                     account.updateAt = LocalDateTime.now()
                     transactionsAccount.save(account)
 
-                    kafkaProducer.sendMessage()
+                    val message = JsonUtil.encodeToJson(
+                        TransactionMessage(
+                            fromUlid = "0x0",
+                            fromName = "0x0",
+                            fromAccountId = "0x0",
+                            toUlId = userUlid,
+                            toName = user.username,
+                            toAccountId = accountId,
+                            value = value,
+                        ), TransactionMessage.serializer()
+                    )
+
+                    kafkaProducer.sendMessage("", message)
                     ResponseProvider.success(DepositResponse(afterBalance = account.balance))
                 }
             }
         }
 
-    fun transfer(fromUlid: String, fromAccountId: String, toAccountId: String, value: BigDecimal): Response<TransferResponse> =
+    fun transfer(
+        fromUlid: String,
+        fromAccountId: String,
+        toAccountId: String,
+        value: BigDecimal
+    ): Response<TransferResponse> =
         Logging.logFor(logger) {
             it
             it["fromUlid"] = fromUlid
@@ -86,10 +105,12 @@ class TransactionService(
                     transactionsAccount.save(toAccount)
                     transactionsAccount.save(fromAccount)
 
-                    ResponseProvider.success(TransferResponse(
-                        afterFromBalance = fromAccount.balance,
-                        afterToBalance = toAccount.balance
-                    ))
+                    ResponseProvider.success(
+                        TransferResponse(
+                            afterFromBalance = fromAccount.balance,
+                            afterToBalance = toAccount.balance
+                        )
+                    )
                 }
             }
         }
