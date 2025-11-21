@@ -4,7 +4,9 @@ import com.frost.lecture.common.cache.RedisClient
 import com.frost.lecture.common.cache.RedisKeyProvider
 import com.frost.lecture.common.exception.CustomException
 import com.frost.lecture.common.exception.ErrorCode
+import com.frost.lecture.common.json.JsonUtil
 import com.frost.lecture.common.logging.Logging
+import com.frost.lecture.common.message.KafkaProducer
 import com.frost.lecture.common.transaction.Transactional
 import com.frost.lecture.domains.model.DepositResponse
 import com.frost.lecture.domains.model.TransferResponse
@@ -12,6 +14,9 @@ import com.frost.lecture.domains.transaction.repository.TransactionsAccount
 import com.frost.lecture.domains.transaction.repository.TransactionsUser
 import com.frost.lecture.types.dto.Response
 import com.frost.lecture.types.dto.ResponseProvider
+import com.frost.lecture.types.entity.Account
+import com.frost.lecture.types.entity.User
+import com.frost.lecture.types.message.TransactionMessage
 import org.slf4j.Logger
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -21,6 +26,7 @@ import java.time.LocalDateTime
 class TransactionService(
     private val transactionsUser: TransactionsUser,
     private val transactionsAccount: TransactionsAccount,
+    private val kafkaProducer: KafkaProducer,
     private val redisClient: RedisClient,
     private val transactional: Transactional,
     private val logger: Logger = Logging.getLogger(TransactionService::class.java)
@@ -33,6 +39,8 @@ class TransactionService(
             it["value"] = value
 
             val key = RedisKeyProvider.bankMutexKey(userUlid, accountId)
+//            var account: Account? = null
+//            var user: User
 
             return@logFor redisClient.invokeWithMutex(key) {
                 return@invokeWithMutex transactional.run {
@@ -43,12 +51,30 @@ class TransactionService(
                     account.updateAt = LocalDateTime.now()
                     transactionsAccount.save(account)
 
+                    val message = JsonUtil.encodeToJson(
+                        TransactionMessage(
+                            fromUlid = "0x0",
+                            fromName = "0x0",
+                            fromAccountId = "0x0",
+                            toUlId = userUlid,
+                            toName = user.username,
+                            toAccountId = accountId,
+                            value = value,
+                        ), TransactionMessage.serializer()
+                    )
+
+                    kafkaProducer.sendMessage("", message)
                     ResponseProvider.success(DepositResponse(afterBalance = account.balance))
                 }
             }
         }
 
-    fun transfer(fromUlid: String, fromAccountId: String, toAccountId: String, value: BigDecimal): Response<TransferResponse> =
+    fun transfer(
+        fromUlid: String,
+        fromAccountId: String,
+        toAccountId: String,
+        value: BigDecimal
+    ): Response<TransferResponse> =
         Logging.logFor(logger) {
             it
             it["fromUlid"] = fromUlid
@@ -59,18 +85,18 @@ class TransactionService(
             val key = RedisKeyProvider.bankMutexKey(fromUlid, fromAccountId)
             redisClient.invokeWithMutex(key) {
                 return@invokeWithMutex transactional.run {
-                    val fromAccount = transactionsAccount.findByUlId(toAccountId)
+                    val fromAccount = transactionsAccount.findByUlId(fromAccountId)
                         ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
 
                     if (fromAccount.ulId != fromUlid) {
-
+                        throw CustomException(ErrorCode.MISS_MATCH_ACCOUNT_ULID_AND_USER_ULID)
                     } else if (fromAccount.balance < value) {
-
+                        throw CustomException(ErrorCode.ENOUGH_VALUE)
                     } else if (value <= BigDecimal.ZERO) {
-
+                        throw CustomException(ErrorCode.VALUE_MUST_NOT_BE_UNDER_ZERO)
                     }
 
-                    val toAccount = transactionsAccount.findByUlId(fromAccountId)
+                    val toAccount = transactionsAccount.findByUlId(toAccountId)
                         ?: throw CustomException(ErrorCode.FAILED_TO_FIND_ACCOUNT)
 
                     fromAccount.balance = fromAccount.balance.subtract(value)
@@ -79,8 +105,12 @@ class TransactionService(
                     transactionsAccount.save(toAccount)
                     transactionsAccount.save(fromAccount)
 
-                    ResponseProvider.success(TransferResponse(afterFromBalance = fromAccount.balance
-                    , afterToBalance = toAccount.balance))
+                    ResponseProvider.success(
+                        TransferResponse(
+                            afterFromBalance = fromAccount.balance,
+                            afterToBalance = toAccount.balance
+                        )
+                    )
                 }
             }
         }
