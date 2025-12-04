@@ -8,6 +8,12 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
+enum class Topics(
+    val topic: String
+) {
+    Transactions("transactions"),
+}
+
 @Component
 class KafkaProducer(
     private val template: KafkaTemplate<String, Any>,
@@ -26,5 +32,4 @@ class KafkaProducer(
             }
         }
     }
-
 }

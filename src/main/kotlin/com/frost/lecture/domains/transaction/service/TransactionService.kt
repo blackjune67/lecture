@@ -7,6 +7,7 @@ import com.frost.lecture.common.exception.ErrorCode
 import com.frost.lecture.common.json.JsonUtil
 import com.frost.lecture.common.logging.Logging
 import com.frost.lecture.common.message.KafkaProducer
+import com.frost.lecture.common.message.Topics
 import com.frost.lecture.common.transaction.Transactional
 import com.frost.lecture.domains.model.DepositResponse
 import com.frost.lecture.domains.model.TransferResponse
@@ -63,7 +64,7 @@ class TransactionService(
                         ), TransactionMessage.serializer()
                     )
 
-                    kafkaProducer.sendMessage("", message)
+                    kafkaProducer.sendMessage(Topics.Transactions.topic, message)
                     ResponseProvider.success(DepositResponse(afterBalance = account.balance))
                 }
             }
@@ -104,6 +105,20 @@ class TransactionService(
 
                     transactionsAccount.save(toAccount)
                     transactionsAccount.save(fromAccount)
+
+                    val message = JsonUtil.encodeToJson(
+                        TransactionMessage(
+                            fromUlid = fromUlid,
+                            fromName = fromAccount.user.username,
+                            fromAccountId = fromAccountId,
+                            toUlId = toAccount.user.ulId,
+                            toName = toAccount.user.username,
+                            toAccountId = toAccountId,
+                            value = value,
+                        ), TransactionMessage.serializer()
+                    )
+
+                    kafkaProducer.sendMessage(Topics.Transactions.topic, message)
 
                     ResponseProvider.success(
                         TransferResponse(
