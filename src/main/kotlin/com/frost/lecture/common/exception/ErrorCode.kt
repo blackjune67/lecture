@@ -24,6 +24,7 @@ enum class ErrorCode(
     FAILED_TO_GET_LOCK(112, "failed to get lock"),
     ENOUGH_VALUE(113, "enough value"),
     VALUE_MUST_NOT_BE_UNDER_ZERO(114, "value must not be under zero"),
-    FAILED_TO_SEND_MESSAGE(114, "failed to send message"),
+    FAILED_TO_SEND_MESSAGE(115, "failed to send message"),
+    FAILED_TO_CONNECT_MONGO(116, "failed to connect mongo")
 
 }
